@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daftar Riwayat Pendidikan</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #eaf2f8;
+        margin: 0;
+        padding: 40px 20px;
+      }
+
+      .container {
+        max-width: 850px;
+        margin: auto;
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px #ccc;
+      }
+
+      h2 {
+        text-align: center;
+        color: #1a5276;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 25px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+      }
+
+      th {
+        background: #1a5276;
+        color: white;
+      }
+
+      tr:nth-child(even) {
+        background: #f2f2f2;
+      }
+
+      #pesan {
+        text-align: center;
+        margin-top: 15px;
+        color: #555;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h2>Daftar Riwayat Pendidikan</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Nama Sekolah</th>
+            <th>Tahun Masuk</th>
+            <th>Tahun Lulus</th>
+            <th>Keterangan</th>
+          </tr>
+        </thead>
+
+        <tbody id="isi-tabel">
+          <tr>
+            <td colspan="4" style="text-align: center">Memuat data...</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p id="pesan"></p>
+    </div>
+
+    <script src="sql-wasm.js"></script>
+
+    <script>
+      async function tampilkanData() {
+        const tbody = document.getElementById("isi-tabel");
+        const pesan = document.getElementById("pesan");
+
+        try {
+          const SQL = await initSqlJs({
+            locateFile: (file) => "./" + file,
+          });
+
+          const respon = await fetch("./pendidikan.db");
+
+          if (!respon.ok) {
+            throw new Error("Database tidak ditemukan.");
+          }
+
+          const buffer = await respon.arrayBuffer();
+
+          const db = new SQL.Database(new Uint8Array(buffer));
+
+          const hasil = db.exec(`
+            SELECT nama_sekolah,
+                   tahun_masuk,
+                   tahun_lulus,
+                   keterangan
+            FROM riwayat
+        `);
+
+          tbody.innerHTML = "";
+
+          if (hasil.length > 0 && hasil[0].values.length > 0) {
+            hasil[0].values.forEach((baris) => {
+              const tr = document.createElement("tr");
+
+              baris.forEach((data) => {
+                const td = document.createElement("td");
+                td.textContent = data ?? "";
+                tr.appendChild(td);
+              });
+
+              tbody.appendChild(tr);
+            });
+          } else {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align:center">
+                        Belum ada data pendidikan.
+                    </td>
+                </tr>
+            `;
+          }
+
+          db.close();
+        } catch (error) {
+          tbody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align:center">
+                    Data gagal dimuat.
+                </td>
+            </tr>
+        `;
+
+          pesan.textContent = error.message;
+          console.error(error);
+        }
+      }
+
+      tampilkanData();
+    </script>
+  </body>
+</html>
